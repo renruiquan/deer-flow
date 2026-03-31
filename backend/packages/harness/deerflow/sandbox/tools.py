@@ -31,6 +31,13 @@ _DEFAULT_SKILLS_CONTAINER_PATH = "/mnt/skills"
 _ACP_WORKSPACE_VIRTUAL_PATH = "/mnt/acp-workspace"
 
 
+def _ensure_runtime_context(runtime: ToolRuntime[ContextT, ThreadState]) -> dict:
+    """Ensure runtime.context is always a mutable dict before sandbox updates."""
+    if runtime.context is None:
+        runtime.context = {}
+    return runtime.context
+
+
 def _get_skills_container_path() -> str:
     """Get the skills container path from config, with fallback to default.
 
@@ -659,7 +666,8 @@ def sandbox_from_runtime(runtime: ToolRuntime[ContextT, ThreadState] | None = No
     if sandbox is None:
         raise SandboxNotFoundError(f"Sandbox with ID '{sandbox_id}' not found", sandbox_id=sandbox_id)
 
-    runtime.context["sandbox_id"] = sandbox_id  # Ensure sandbox_id is in context for downstream use
+    context = _ensure_runtime_context(runtime)
+    context["sandbox_id"] = sandbox_id  # Ensure sandbox_id is in context for downstream use
     return sandbox
 
 
@@ -687,6 +695,8 @@ def ensure_sandbox_initialized(runtime: ToolRuntime[ContextT, ThreadState] | Non
     if runtime.state is None:
         raise SandboxRuntimeError("Tool runtime state not available")
 
+    context = _ensure_runtime_context(runtime)
+
     # Check if sandbox already exists in state
     sandbox_state = runtime.state.get("sandbox")
     if sandbox_state is not None:
@@ -694,12 +704,12 @@ def ensure_sandbox_initialized(runtime: ToolRuntime[ContextT, ThreadState] | Non
         if sandbox_id is not None:
             sandbox = get_sandbox_provider().get(sandbox_id)
             if sandbox is not None:
-                runtime.context["sandbox_id"] = sandbox_id  # Ensure sandbox_id is in context for releasing in after_agent
+                context["sandbox_id"] = sandbox_id  # Ensure sandbox_id is in context for releasing in after_agent
                 return sandbox
             # Sandbox was released, fall through to acquire new one
 
     # Lazy acquisition: get thread_id and acquire sandbox
-    thread_id = runtime.context.get("thread_id") if runtime.context else None
+    thread_id = context.get("thread_id")
     if thread_id is None:
         thread_id = runtime.config.get("configurable", {}).get("thread_id") if runtime.config else None
     if thread_id is None:
@@ -716,7 +726,7 @@ def ensure_sandbox_initialized(runtime: ToolRuntime[ContextT, ThreadState] | Non
     if sandbox is None:
         raise SandboxNotFoundError("Sandbox not found after acquisition", sandbox_id=sandbox_id)
 
-    runtime.context["sandbox_id"] = sandbox_id  # Ensure sandbox_id is in context for releasing in after_agent
+    context["sandbox_id"] = sandbox_id  # Ensure sandbox_id is in context for releasing in after_agent
     return sandbox
 
 
