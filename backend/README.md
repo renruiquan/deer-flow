@@ -357,7 +357,11 @@ make format     # Format code (ruff)
 ### Testing
 
 ```bash
+# full backend test suite
 uv run pytest
+
+# focused sandbox runtime.context regression check
+uv run pytest tests/test_sandbox_runtime_context_fix.py -q
 ```
 
 ---

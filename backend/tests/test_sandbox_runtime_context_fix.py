@@ -1,47 +1,11 @@
 """Regression tests for sandbox runtime context initialization."""
 
-import importlib
-import sys
-from types import ModuleType, SimpleNamespace
+from types import SimpleNamespace
 
-
-def _import_sandbox_tools():
-    """Import sandbox.tools with a lightweight agents.thread_state stub."""
-    original_agents = sys.modules.get("deerflow.agents")
-    original_thread_state = sys.modules.get("deerflow.agents.thread_state")
-    original_tools = sys.modules.pop("deerflow.sandbox.tools", None)
-
-    agents_module = ModuleType("deerflow.agents")
-    agents_module.__path__ = []
-    thread_state_module = ModuleType("deerflow.agents.thread_state")
-    thread_state_module.ThreadDataState = dict
-    thread_state_module.ThreadState = dict
-    agents_module.thread_state = thread_state_module
-
-    sys.modules["deerflow.agents"] = agents_module
-    sys.modules["deerflow.agents.thread_state"] = thread_state_module
-
-    try:
-        return importlib.import_module("deerflow.sandbox.tools")
-    finally:
-        if original_tools is not None:
-            sys.modules["deerflow.sandbox.tools"] = original_tools
-        else:
-            sys.modules.pop("deerflow.sandbox.tools", None)
-
-        if original_agents is not None:
-            sys.modules["deerflow.agents"] = original_agents
-        else:
-            sys.modules.pop("deerflow.agents", None)
-
-        if original_thread_state is not None:
-            sys.modules["deerflow.agents.thread_state"] = original_thread_state
-        else:
-            sys.modules.pop("deerflow.agents.thread_state", None)
+from deerflow.sandbox import tools as sandbox_tools
 
 
 def test_sandbox_from_runtime_initializes_missing_context(monkeypatch) -> None:
-    sandbox_tools = _import_sandbox_tools()
     sandbox = SimpleNamespace()
     runtime = SimpleNamespace(
         state={"sandbox": {"sandbox_id": "sandbox-1"}},
@@ -61,7 +25,6 @@ def test_sandbox_from_runtime_initializes_missing_context(monkeypatch) -> None:
 
 
 def test_ensure_sandbox_initialized_initializes_missing_context_on_lazy_acquire(monkeypatch) -> None:
-    sandbox_tools = _import_sandbox_tools()
     sandbox = SimpleNamespace()
     runtime = SimpleNamespace(
         state={},
@@ -86,7 +49,6 @@ def test_ensure_sandbox_initialized_initializes_missing_context_on_lazy_acquire(
 
 
 def test_ensure_sandbox_initialized_initializes_missing_context_with_existing_sandbox(monkeypatch) -> None:
-    sandbox_tools = _import_sandbox_tools()
     sandbox = SimpleNamespace()
     runtime = SimpleNamespace(
         state={"sandbox": {"sandbox_id": "sandbox-3"}},

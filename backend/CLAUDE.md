@@ -97,6 +97,9 @@ Regression tests related to Docker/provisioner behavior:
 - `tests/test_docker_sandbox_mode_detection.py` (mode detection from `config.yaml`)
 - `tests/test_provisioner_kubeconfig.py` (kubeconfig file/directory handling)
 
+Sandbox runtime-context regression test:
+- `tests/test_sandbox_runtime_context_fix.py` (covers missing `runtime.context` for existing and lazily acquired sandboxes)
+
 Boundary check (harness → app import firewall):
 - `tests/test_harness_boundary.py` — ensures `packages/harness/deerflow/` never imports from `app.*`
 
