@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 import pytest
 
+from deerflow.sandbox import tools as sandbox_tools
 from deerflow.sandbox.tools import (
     VIRTUAL_PATH_PREFIX,
     _apply_cwd_prefix,
@@ -264,11 +265,21 @@ def test_bash_tool_rejects_host_bash_when_local_sandbox_default(monkeypatch) -> 
         context={"thread_id": "thread-1"},
     )
 
+    mock_config = SimpleNamespace(
+        sandbox=SimpleNamespace(
+            use="deerflow.sandbox.local:LocalSandboxProvider",
+            allow_host_bash=False,
+            bash_output_max_chars=20000,
+        ),
+        skills=SimpleNamespace(container_path="/mnt/skills"),
+    )
+    monkeypatch.setattr("deerflow.config.app_config.get_app_config", lambda *_a, **_kw: mock_config)
     monkeypatch.setattr(
-        "deerflow.sandbox.tools.ensure_sandbox_initialized",
+        sandbox_tools,
+        "ensure_sandbox_initialized",
         lambda runtime: SimpleNamespace(execute_command=lambda command: pytest.fail("host bash should not execute")),
     )
-    monkeypatch.setattr("deerflow.sandbox.tools.is_host_bash_allowed", lambda: False)
+    monkeypatch.setattr(sandbox_tools, "is_host_bash_allowed", lambda: False)
 
     result = bash_tool.func(
         runtime=runtime,
